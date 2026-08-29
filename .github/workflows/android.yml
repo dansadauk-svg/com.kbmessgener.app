@@ -19,12 +19,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Restore Firebase config
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: |
-          test -n "$GOOGLE_SERVICES_JSON"
-          printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > app/google-services.json
+      - name: Verify Firebase configuration
+        run: test -s app/google-services.json
       - run: gradle lintDebug assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:

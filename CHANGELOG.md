@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4
+
+- Added the explicit OkHttp media type and request body extension imports.
+
 ## 1.0.3
 
 - Enabled AndroidX in Gradle properties for GitHub Actions builds.

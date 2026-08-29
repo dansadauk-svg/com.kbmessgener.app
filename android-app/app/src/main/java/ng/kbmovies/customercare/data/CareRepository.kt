@@ -23,7 +23,7 @@ class CareRepository(private val context:Context) {
     }.addInterceptor(HttpLoggingInterceptor().apply{level=HttpLoggingInterceptor.Level.BASIC}).build()
     private val api=Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL).client(client).addConverterFactory(GsonConverterFactory.create()).build().create(CareApi::class.java)
     fun signedIn()=!prefs.getString("token","").isNullOrBlank()
-    suspend fun login(user:String,pass:String):Agent { val r=api.login(LoginRequest(user,pass));prefs.edit().putString("token",r.token).apply();registerDevice();return r.agent }
+    suspend fun login(user:String,pass:String):Agent { val r=api.login(LoginRequest(user,pass));prefs.edit().putString("token",r.token).apply();runCatching{registerDevice()};return r.agent }
     fun logout(){prefs.edit().clear().apply()}
     suspend fun me()=api.me()
     suspend fun setAvailable(value:Boolean)=api.availability(AvailabilityRequest(value))

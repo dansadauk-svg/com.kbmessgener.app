@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "883381607087",
+    "project_id": "chatmkmovies",
+    "storage_bucket": "chatmkmovies.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:883381607087:android:09a81276e9b647bc66d25a",
+        "android_client_info": {
+          "package_name": "com.kbmessenger.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwpPDuRe8BfUDFjEaBlkqrTz4Awhzf-MM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:883381607087:android:f4281d8e0f4de65266d25a",
+        "android_client_info": {
+          "package_name": "ng.kbmovies.customercare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwpPDuRe8BfUDFjEaBlkqrTz4Awhzf-MM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

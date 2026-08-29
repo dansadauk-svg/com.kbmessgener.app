@@ -22,12 +22,12 @@ Native Android customer-care app plus a WordPress bridge for KBMovies.ng.
    project ID, service-account email and private key.
 4. Give each agent the WordPress role **Customer Care Agent**.
 5. Create an Android Firebase app with package `ng.kbmovies.customercare`.
-6. Download `google-services.json` into `android-app/app/`.
+6. The Firebase Android configuration is already included in `android-app/app/`.
 7. Push this repository to GitHub. The included workflow builds a debug APK.
 
 Never commit a Firebase service-account JSON/private key or WordPress password.
-`google-services.json` contains project identifiers and may be committed for an
-Android app, but service-account credentials must remain only on the server.
+`google-services.json` contains Android project identifiers and is included in
+this project. Service-account credentials must remain only on the server.
 
 ## API base URL
 
@@ -38,7 +38,7 @@ The default is `https://kbmovies.ng/wp-json/kbcc/v1/`. Change `API_BASE_URL` in
 
 - Use HTTPS only.
 - Exclude `/wp-json/kbcc/v1/*` from page cache, but keep rate limiting enabled.
-- Add `google-services.json` before building.
+- Confirm `android-app/app/google-services.json` is present before building.
 - Create a signed release keystore in GitHub Secrets; do not commit it.
 - Test background notifications on Android 13+ after granting notification permission.
 - Publish a privacy policy explaining message and media retention.

@@ -10,8 +10,8 @@ data class Agent(val id:Long,val name:String,val avatar:String?,val available:Bo
 data class AvailabilityRequest(val available:Boolean)
 data class DeviceRequest(val token:String,val platform:String="android")
 data class Conversation(val id:Long,@SerializedName("public_id") val publicId:String,@SerializedName("customer_name") val customerName:String,@SerializedName("customer_avatar") val customerAvatar:String?,@SerializedName("last_message") val lastMessage:String?,@SerializedName("updated_at") val updatedAt:String,val unread:Int)
-data class Message(val id:Long,@SerializedName("sender_type") val senderType:String,@SerializedName("message_type") val messageType:String,val body:String?,@SerializedName("media_url") val mediaUrl:String?,@SerializedName("created_at") val createdAt:String)
-data class MessagesResponse(val messages:List<Message>,@SerializedName("next_after") val nextAfter:Long)
+data class Message(val id:Long,@SerializedName("sender_type") val senderType:String,@SerializedName("message_type") val messageType:String,val body:String?,@SerializedName("media_url") val mediaUrl:String?,@SerializedName("created_at") val createdAt:String,@SerializedName("read_at") val readAt:String?=null)
+data class MessagesResponse(val messages:List<Message>,@SerializedName("next_after") val nextAfter:Long,@SerializedName("peer_read_id") val peerReadId:Long=0)
 data class SendRequest(@SerializedName("conversation_id") val conversationId:Long,val type:String,val body:String="",@SerializedName("media_url") val mediaUrl:String="",@SerializedName("object_key") val objectKey:String="",@SerializedName("mime_type") val mimeType:String="")
 data class PresignRequest(@SerializedName("conversation_id") val conversationId:Long,val kind:String,@SerializedName("mime_type") val mimeType:String,val size:Long)
 data class PresignResponse(@SerializedName("upload_url") val uploadUrl:String,@SerializedName("public_url") val publicUrl:String,@SerializedName("object_key") val objectKey:String)
@@ -22,7 +22,7 @@ interface CareApi {
     @POST("availability") suspend fun availability(@Body body:AvailabilityRequest):Agent
     @POST("device") suspend fun device(@Body body:DeviceRequest)
     @GET("conversations") suspend fun conversations():List<Conversation>
-    @GET("conversations/{id}/messages") suspend fun messages(@Path("id") id:Long,@Query("after") after:Long=0):MessagesResponse
+    @GET("conversations/{id}/messages") suspend fun messages(@Path("id") id:Long,@Query("after") after:Long=0,@Query("mark_read") markRead:Int=1):MessagesResponse
     @POST("messages") suspend fun send(@Body body:SendRequest):Message
     @POST("media/presign") suspend fun presign(@Body body:PresignRequest):PresignResponse
 }

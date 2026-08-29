@@ -28,7 +28,7 @@ class CareRepository(private val context:Context) {
     suspend fun me()=api.me()
     suspend fun setAvailable(value:Boolean)=api.availability(AvailabilityRequest(value))
     suspend fun conversations()=api.conversations()
-    suspend fun messages(id:Long,after:Long=0)=api.messages(id,after)
+    suspend fun messages(id:Long,after:Long=0)=api.messages(id,after,1)
     suspend fun sendText(id:Long,text:String)=api.send(SendRequest(id,"text",text))
     suspend fun sendMedia(id:Long,uri:Uri,kind:String,mime:String):Message {
         val bytes=context.contentResolver.openInputStream(uri)!!.use{it.readBytes()}
@@ -45,6 +45,8 @@ class CareRepository(private val context:Context) {
     }
     suspend fun registerDevice(){
         val token=suspendCancellableCoroutine<String>{c->FirebaseMessaging.getInstance().token.addOnSuccessListener{c.resume(it)}.addOnFailureListener{c.resume("")}}
-        if(token.isNotBlank())api.device(DeviceRequest(token))
+        val resolved=token.ifBlank{prefs.getString("pending_fcm_token","").orEmpty()}
+        if(resolved.isNotBlank())registerDeviceToken(resolved)
     }
+    suspend fun registerDeviceToken(token:String){prefs.edit().putString("pending_fcm_token",token).apply();if(signedIn())api.device(DeviceRequest(token))}
 }

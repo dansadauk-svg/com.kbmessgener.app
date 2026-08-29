@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+- Enabled AndroidX in Gradle properties for GitHub Actions builds.
+
 ## 1.0.0
 
 - Native Kotlin/Compose customer-care app.

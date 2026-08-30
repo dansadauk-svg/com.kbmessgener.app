@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+- Changed customer-care presence wording from Available to Online.
+- Corrected the oversized mobile chat header and refined the full-screen layout.
+- Closing the chat now returns the user to the agent selector.
+- Selecting the same customer-care agent resumes the existing conversation and history.
+- Added a professional agent selector and empty-conversation notice.
+
 ## 1.4.0
 - Fixed R2 image and voice-note uploads by separating signed uploads from authenticated API requests.
 - Streamed media directly instead of loading complete files into memory.

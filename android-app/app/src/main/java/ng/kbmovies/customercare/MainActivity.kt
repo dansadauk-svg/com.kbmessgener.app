@@ -50,6 +50,17 @@ import java.io.File
 import retrofit2.HttpException
 
 private val Green=Color(0xFF075E54);private val Lime=Color(0xFF16A05D);private val ChatBg=Color(0xFFEFEAE2)
+private const val PLAN_QUICK_REPLY="""TSARIN MU
+
+1 Month — ₦2,500
+2 Months — ₦4,500
+6 Months — ₦14,000
+1 Year — ₦25,000"""
+private const val ACCOUNT_QUICK_REPLY="""ACCOUNT
+
+Banki: Moniepoint
+Suna: Arewa Scope Digital Media
+Lambar Account: 4006045293"""
 
 data class UiState(val loading:Boolean=false,val agent:Agent?=null,val conversations:List<Conversation> = emptyList(),val selected:Conversation?=null,val messages:List<Message> = emptyList(),val peerReadId:Long=0,val error:String?=null,val transfer:String?=null,val progress:Int=0)
 
@@ -104,6 +115,7 @@ class MainActivity:ComponentActivity(){
         if(recording){Row(Modifier.fillMaxWidth().background(Color(0xFFFFE3E0)).padding(10.dp),verticalAlignment=Alignment.CenterVertically){Text("●",color=Color.Red,fontWeight=FontWeight.Bold);Spacer(Modifier.width(8.dp));Text("Recording ${seconds/60}:${(seconds%60).toString().padStart(2,'0')} — tap stop to send",color=Color(0xFFB3261E),fontWeight=FontWeight.Bold)}}
         s.transfer?.let{Column(Modifier.fillMaxWidth().background(Color.White).padding(horizontal=12.dp,vertical=7.dp)){Text(it,color=Green,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.labelMedium);if(s.progress>0)LinearProgressIndicator(progress={s.progress/100f},modifier=Modifier.fillMaxWidth())}}
         s.error?.let{Text(it,color=Color(0xFFB3261E),modifier=Modifier.background(Color(0xFFFFDAD6)).fillMaxWidth().clickable{vm.clearError()}.padding(8.dp))}
+        Row(Modifier.fillMaxWidth().background(Color(0xFFF0F2F1)).padding(horizontal=10.dp,vertical=4.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={vm.send(PLAN_QUICK_REPLY)},enabled=s.transfer==null,shape=RoundedCornerShape(18.dp),contentPadding=PaddingValues(horizontal=14.dp,vertical=6.dp),modifier=Modifier.weight(1f)){Text("TSARIN MU",fontWeight=FontWeight.Bold,color=Green)};OutlinedButton(onClick={vm.send(ACCOUNT_QUICK_REPLY)},enabled=s.transfer==null,shape=RoundedCornerShape(18.dp),contentPadding=PaddingValues(horizontal=14.dp,vertical=6.dp),modifier=Modifier.weight(1f)){Text("ACCOUNT",fontWeight=FontWeight.Bold,color=Green)}}
         Row(Modifier.fillMaxWidth().background(Color(0xFFF0F2F1)).padding(horizontal=8.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically){Surface(shape=CircleShape,color=Color.White){TextButton(onClick={image.launch("image/*")},enabled=s.transfer==null,contentPadding=PaddingValues(9.dp)){Text("📎")}};OutlinedTextField(text,{text=it},placeholder={Text("Message")},modifier=Modifier.weight(1f).padding(horizontal=6.dp),shape=RoundedCornerShape(26.dp),maxLines=4,enabled=s.transfer==null,colors=OutlinedTextFieldDefaults.colors(unfocusedBorderColor=Color.Transparent,focusedBorderColor=Color.Transparent,focusedContainerColor=Color.White,unfocusedContainerColor=Color.White));Surface(shape=CircleShape,color=if(recording)Color(0xFFB3261E)else Lime){TextButton(onClick={if(recording){val ok=runCatching{recorder?.stop()}.isSuccess;recorder?.release();recorder=null;recording=false;if(ok)audioFile?.let(vm::audio)}else mic.launch(Manifest.permission.RECORD_AUDIO)},enabled=s.transfer==null,contentPadding=PaddingValues(9.dp)){Text(if(recording)"■" else "🎙",color=Color.White)}};Spacer(Modifier.width(5.dp));Button(onClick={if(text.isNotBlank()){vm.send(text.trim());text=""}},enabled=s.transfer==null,shape=CircleShape,contentPadding=PaddingValues(11.dp),modifier=Modifier.size(48.dp)){Text("➤")}}
     }
 }

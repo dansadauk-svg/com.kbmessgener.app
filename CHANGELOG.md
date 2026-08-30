@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.6 Android
+- Added one-tap `TSARIN MU` subscription-plan quick reply.
+- Added one-tap `ACCOUNT` Moniepoint payment-details quick reply.
+- Quick replies preserve professional line spacing and Naira formatting.
+
 ## 1.4.5 Android
 - Removed the incompatible Kotlin file-level Media3 opt-in that Android Lint flagged.
 - Retained AndroidX's correct function-level `OptIn` and targeted lint suppression.

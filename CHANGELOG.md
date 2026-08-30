@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0
+- Fixed R2 image and voice-note uploads by separating signed uploads from authenticated API requests.
+- Streamed media directly instead of loading complete files into memory.
+- Added visible recording timer and media upload percentage.
+- Added full-screen in-app picture viewing and inline voice-note playback.
+- Reduced active chat refresh time to one second.
+
 ## 1.1.0
 
 - Rebuilt the inbox and conversation screen with a WhatsApp-inspired layout.

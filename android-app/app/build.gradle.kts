@@ -12,8 +12,8 @@ android {
         applicationId = "ng.kbmovies.customercare"
         minSdk = 31
         targetSdk = 35
-        versionCode = 14
-        versionName = "1.3.2"
+        versionCode = 15
+        versionName = "1.4.0"
         buildConfigField("String", "API_BASE_URL", "\"https://kbmovies.ng/wp-json/kbcc/v1/\"")
     }
     buildFeatures { compose = true; buildConfig = true }
@@ -37,6 +37,8 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-ui:1.5.1")
     implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
     implementation("com.google.firebase:firebase-messaging")
 }

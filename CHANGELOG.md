@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2
+- Added the required Media3 `UnstableApi` opt-in for the inline ExoPlayer voice-note player.
+- Fixed the Android lint failure in `MainActivity.kt`.
+
 ## 1.4.1
 - Changed customer-care presence wording from Available to Online.
 - Corrected the oversized mobile chat header and refined the full-screen layout.

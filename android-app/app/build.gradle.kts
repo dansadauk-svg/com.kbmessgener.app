@@ -12,8 +12,8 @@ android {
         applicationId = "ng.kbmovies.customercare"
         minSdk = 31
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.4.4"
+        versionCode = 20
+        versionName = "1.4.5"
         buildConfigField("String", "API_BASE_URL", "\"https://kbmovies.ng/wp-json/kbcc/v1/\"")
     }
     buildFeatures { compose = true; buildConfig = true }

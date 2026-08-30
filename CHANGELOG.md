@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.5 Android
+- Removed the incompatible Kotlin file-level Media3 opt-in that Android Lint flagged.
+- Retained AndroidX's correct function-level `OptIn` and targeted lint suppression.
+
 ## 1.4.4 Android / 1.4.3 WordPress
 - Conversation messages, pictures and voice notes remain stored after close or inactivity.
 - The website and Android app reload the same saved thread when it is reopened.

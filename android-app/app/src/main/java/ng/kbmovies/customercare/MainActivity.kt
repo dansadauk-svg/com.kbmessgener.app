@@ -1,5 +1,3 @@
-@file:OptIn(androidx.media3.common.util.UnstableApi::class)
-
 package ng.kbmovies.customercare
 
 import android.Manifest

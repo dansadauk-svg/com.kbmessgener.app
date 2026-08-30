@@ -32,10 +32,12 @@ class CareRepository(private val context:Context) {
     private val api=Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL).client(apiClient).addConverterFactory(GsonConverterFactory.create()).build().create(CareApi::class.java)
 
     fun signedIn()=!prefs.getString("token","").isNullOrBlank()
-    suspend fun login(user:String,pass:String):Agent { val r=api.login(LoginRequest(user,pass));prefs.edit().putString("token",r.token).apply();runCatching{registerDevice()};return r.agent }
+    suspend fun login(user:String,pass:String):Agent { val r=api.login(LoginRequest(user,pass));prefs.edit().putString("token",r.token).apply();cacheAgent(r.agent);runCatching{registerDevice()};return r.agent }
     fun logout(){prefs.edit().clear().apply()}
+    fun cacheAgent(agent:Agent){prefs.edit().putLong("agent_id",agent.id).putString("agent_name",agent.name).putString("agent_avatar",agent.avatar.orEmpty()).putBoolean("agent_available",agent.available).apply()}
+    fun cachedAgent():Agent?{val id=prefs.getLong("agent_id",0);if(id<=0)return null;return Agent(id,prefs.getString("agent_name","Customer Care").orEmpty(),prefs.getString("agent_avatar","").orEmpty().ifBlank{null},prefs.getBoolean("agent_available",false))}
     suspend fun me()=api.me()
-    suspend fun setAvailable(value:Boolean)=api.availability(AvailabilityRequest(value))
+    suspend fun setAvailable(value:Boolean)=api.availability(AvailabilityRequest(value)).also(::cacheAgent)
     suspend fun conversations()=api.conversations()
     suspend fun messages(id:Long,after:Long=0)=api.messages(id,after,1)
     suspend fun sendText(id:Long,text:String)=api.send(SendRequest(id,"text",text))

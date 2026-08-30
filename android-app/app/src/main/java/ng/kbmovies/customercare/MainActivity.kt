@@ -3,6 +3,7 @@
 package ng.kbmovies.customercare
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
@@ -48,6 +49,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import ng.kbmovies.customercare.data.*
 import java.io.File
+import retrofit2.HttpException
 
 private val Green=Color(0xFF075E54);private val Lime=Color(0xFF16A05D);private val ChatBg=Color(0xFFEFEAE2)
 
@@ -55,7 +57,7 @@ data class UiState(val loading:Boolean=false,val agent:Agent?=null,val conversat
 
 class CareViewModel(private val repo:CareRepository):ViewModel(){
     private val _ui=MutableStateFlow(UiState());val ui=_ui.asStateFlow();private var poll:Job?=null
-    fun restore(){if(repo.signedIn())viewModelScope.launch{runCatching{repo.me()}.onSuccess{_ui.value=_ui.value.copy(agent=it);launch{runCatching{repo.registerDevice()}};refresh()}.onFailure{repo.logout()}}}
+    fun restore(){if(repo.signedIn()){repo.cachedAgent()?.let{_ui.value=_ui.value.copy(agent=it)};viewModelScope.launch{runCatching{repo.me()}.onSuccess{repo.cacheAgent(it);_ui.value=_ui.value.copy(agent=it,error=null);launch{runCatching{repo.registerDevice()}};refresh()}.onFailure{t->if(t is HttpException&&t.code()==401){repo.logout();_ui.value=UiState()}else{_ui.value=_ui.value.copy(error="Connection unavailable. You remain signed in.")}}}}}
     fun login(u:String,p:String)=viewModelScope.launch{_ui.value=_ui.value.copy(loading=true,error=null);runCatching{repo.login(u,p)}.onSuccess{_ui.value=_ui.value.copy(loading=false,agent=it);refresh()}.onFailure{_ui.value=_ui.value.copy(loading=false,error=it.message)}}
     fun logout(){poll?.cancel();repo.logout();_ui.value=UiState()}
     fun available(v:Boolean)=viewModelScope.launch{runCatching{repo.setAvailable(v)}.onSuccess{_ui.value=_ui.value.copy(agent=it)}.onFailure{fail(it)}}
@@ -63,7 +65,7 @@ class CareViewModel(private val repo:CareRepository):ViewModel(){
     fun open(c:Conversation){_ui.value=_ui.value.copy(selected=c,messages=emptyList(),peerReadId=0,conversations=_ui.value.conversations.map{if(it.id==c.id)it.copy(unread=0)else it});poll?.cancel();poll=viewModelScope.launch{while(isActive){loadMessages();delay(1000)}}}
     fun back(){poll?.cancel();_ui.value=_ui.value.copy(selected=null,messages=emptyList());refresh()}
     private fun merge(incoming:List<Message>){_ui.value=_ui.value.copy(messages=(_ui.value.messages+incoming).associateBy{it.id}.values.sortedBy{it.id})}
-    private suspend fun loadMessages(){val c=_ui.value.selected?:return;runCatching{repo.messages(c.id,0)}.onSuccess{r->if(r.messages.isNotEmpty())merge(r.messages);_ui.value=_ui.value.copy(peerReadId=r.peerReadId)}}
+    private suspend fun loadMessages(){val c=_ui.value.selected?:return;val after=_ui.value.messages.maxOfOrNull{it.id}?:0L;runCatching{repo.messages(c.id,after)}.onSuccess{r->if(r.messages.isNotEmpty())merge(r.messages);_ui.value=_ui.value.copy(peerReadId=r.peerReadId,error=null)}}
     fun send(text:String)=viewModelScope.launch{val id=_ui.value.selected?.id?:return@launch;_ui.value=_ui.value.copy(transfer="Sending message…",error=null);runCatching{repo.sendText(id,text)}.onSuccess{merge(listOf(it));_ui.value=_ui.value.copy(transfer=null)}.onFailure{fail(it)}}
     fun image(uri:Uri,mime:String)=viewModelScope.launch{val id=_ui.value.selected?.id?:return@launch;_ui.value=_ui.value.copy(transfer="Sending picture…",progress=0,error=null);runCatching{repo.sendMedia(id,uri,"image",mime){p->_ui.value=_ui.value.copy(progress=p,transfer="Sending picture… $p%")}}.onSuccess{merge(listOf(it));_ui.value=_ui.value.copy(transfer=null,progress=0)}.onFailure{fail(it)}}
     fun audio(file:File)=viewModelScope.launch{val id=_ui.value.selected?.id?:return@launch;_ui.value=_ui.value.copy(transfer="Sending voice note…",progress=0,error=null);runCatching{repo.sendAudio(id,file){p->_ui.value=_ui.value.copy(progress=p,transfer="Sending voice note… $p%")}}.onSuccess{merge(listOf(it));file.delete();_ui.value=_ui.value.copy(transfer=null,progress=0)}.onFailure{fail(it)}}
@@ -111,4 +113,6 @@ class MainActivity:ComponentActivity(){
 @Composable fun MessageBubble(m:Message,openImage:(String)->Unit){
     val mine=m.senderType=="agent";Row(Modifier.fillMaxWidth(),horizontalArrangement=if(mine)Arrangement.End else Arrangement.Start){Column(Modifier.padding(vertical=3.dp).background(if(mine)Color(0xFFD9FDD3)else Color.White,RoundedCornerShape(10.dp)).padding(9.dp).widthIn(max=300.dp)){when(m.messageType){"image"->AsyncImage(m.mediaUrl,null,Modifier.fillMaxWidth().heightIn(max=300.dp).clickable{m.mediaUrl?.let(openImage)},contentScale=ContentScale.Fit);"audio"->m.mediaUrl?.let{InlineAudio(it)}?:Text("Voice note unavailable");else->Text(m.body.orEmpty())};Row(Modifier.align(Alignment.End),verticalAlignment=Alignment.CenterVertically){Text(m.createdAt.takeLast(8).take(5),style=MaterialTheme.typography.labelSmall,color=Color.Gray);if(mine){Spacer(Modifier.width(4.dp));Text(if(m.readAt.isNullOrBlank())"✓" else "✓✓",color=if(m.readAt.isNullOrBlank())Color.Gray else Color(0xFF1687D9),fontWeight=FontWeight.Bold)}}}}}
 
+@androidx.annotation.OptIn(markerClass=[androidx.media3.common.util.UnstableApi::class])
+@SuppressLint("UnsafeOptInUsageError")
 @Composable fun InlineAudio(url:String){val context=LocalContext.current;val player=remember(url){ExoPlayer.Builder(context).build().apply{setMediaItem(MediaItem.fromUri(url));prepare()}};DisposableEffect(player){onDispose{player.release()}};AndroidView(factory={PlayerView(it).apply{this.player=player;useController=true;setShowNextButton(false);setShowPreviousButton(false)}},modifier=Modifier.fillMaxWidth().height(62.dp))}

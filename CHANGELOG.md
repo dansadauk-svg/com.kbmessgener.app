@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.4 Android / 1.4.3 WordPress
+- Conversation messages, pictures and voice notes remain stored after close or inactivity.
+- The website and Android app reload the same saved thread when it is reopened.
+- Initial history loading now retrieves the newest 500 messages immediately.
+- Live polling now requests only messages newer than the last message already displayed.
+
+## 1.4.3 Android / 1.4.2 WordPress
+- Added Android Lint's Media3 opt-in and `UnsafeOptInUsageError` suppression to the inline player.
+- Customer-care login now survives app restarts and temporary network/server failures.
+- Added cached staff identity for offline startup.
+- WordPress now supports multiple permanent device sessions per customer-care account without one phone logging out another.
+
 ## 1.4.2
 - Added the required Media3 `UnstableApi` opt-in for the inline ExoPlayer voice-note player.
 - Fixed the Android lint failure in `MainActivity.kt`.

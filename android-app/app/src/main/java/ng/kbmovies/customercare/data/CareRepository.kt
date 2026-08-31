@@ -5,6 +5,8 @@ import android.net.Uri
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import ng.kbmovies.customercare.BuildConfig
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -81,7 +83,7 @@ class CareRepository(private val context:Context) {
         return try{api.send(SendRequest(id,"audio",mediaUrl=delivered.publicUrl,objectKey=delivered.objectKey,mimeType=mime))}catch(e:Exception){throw IOException("Voice reached R2, but the chat message could not be saved: ${e.message?:"request failed"}",e)}
     }
 
-    private fun putSigned(url:String,body:RequestBody){val request=Request.Builder().url(url).put(body).build();uploadClient.newCall(request).execute().use{if(!it.isSuccessful)throw IOException("Direct R2 upload failed (${it.code})")}}
+    private suspend fun putSigned(url:String,body:RequestBody)=withContext(Dispatchers.IO){val request=Request.Builder().url(url).put(body).build();uploadClient.newCall(request).execute().use{if(!it.isSuccessful)throw IOException("Direct R2 upload failed (${it.code})")}}
     suspend fun registerDevice(){val token=suspendCancellableCoroutine<String>{c->FirebaseMessaging.getInstance().token.addOnSuccessListener{c.resume(it)}.addOnFailureListener{c.resume("")}};val resolved=token.ifBlank{prefs.getString("pending_fcm_token","").orEmpty()};if(resolved.isNotBlank())registerDeviceToken(resolved)}
     suspend fun registerDeviceToken(token:String){prefs.edit().putString("pending_fcm_token",token).apply();if(signedIn())api.device(DeviceRequest(token))}
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.delay
 import ng.kbmovies.customercare.BuildConfig
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -40,6 +41,8 @@ class CareRepository(private val context:Context) {
     suspend fun setAvailable(value:Boolean)=api.availability(AvailabilityRequest(value)).also(::cacheAgent)
     suspend fun conversations()=api.conversations()
     suspend fun messages(id:Long,after:Long=0)=api.messages(id,after,1)
+    suspend fun closeConversation(id:Long)=api.closeConversation(id)
+    suspend fun activity(id:Long,state:String)=api.activity(ActivityRequest(id,state))
     suspend fun sendText(id:Long,text:String)=api.send(SendRequest(id,"text",text))
 
     private fun cleanMime(raw:String,kind:String):String {
@@ -68,17 +71,17 @@ class CareRepository(private val context:Context) {
 
     suspend fun sendAudio(id:Long,file:File,onProgress:(Int)->Unit={}):Message {
         if(!file.exists()||file.length()<=0)throw IOException("No voice recording was created")
-        val mime="audio/mp4";val length=file.length();val signed=api.presign(PresignRequest(id,"audio",mime,length))
+        val mime="audio/mp4";val length=file.length();val delivered=api.presign(PresignRequest(id,"audio",mime,length))
         val body=object:RequestBody(){
             override fun contentType()=mime.toMediaType()
             override fun contentLength()=length
             override fun writeTo(sink:BufferedSink){file.inputStream().use{input->val buffer=ByteArray(DEFAULT_BUFFER_SIZE);var sent=0L;while(true){val count=input.read(buffer);if(count<0)break;sink.write(buffer,0,count);sent+=count;onProgress(((sent*100)/length).toInt().coerceIn(0,100))}}}
         }
-        putSigned(signed.uploadUrl,body);onProgress(100)
-        return api.send(SendRequest(id,"audio",mediaUrl=signed.publicUrl,objectKey=signed.objectKey,mimeType=mime))
+        try{putSigned(delivered.uploadUrl,body)}catch(first:Exception){onProgress(5);delay(350);try{putSigned(delivered.uploadUrl,body)}catch(second:Exception){throw IOException("R2 voice upload failed: ${second.message?:first.message?:"check connection"}",second)}};onProgress(100)
+        return try{api.send(SendRequest(id,"audio",mediaUrl=delivered.publicUrl,objectKey=delivered.objectKey,mimeType=mime))}catch(e:Exception){throw IOException("Voice reached R2, but the chat message could not be saved: ${e.message?:"request failed"}",e)}
     }
 
-    private fun putSigned(url:String,body:RequestBody){val request=Request.Builder().url(url).put(body).build();uploadClient.newCall(request).execute().use{if(!it.isSuccessful)throw IOException("Media upload failed (${it.code})")}}
+    private fun putSigned(url:String,body:RequestBody){val request=Request.Builder().url(url).put(body).build();uploadClient.newCall(request).execute().use{if(!it.isSuccessful)throw IOException("Direct R2 upload failed (${it.code})")}}
     suspend fun registerDevice(){val token=suspendCancellableCoroutine<String>{c->FirebaseMessaging.getInstance().token.addOnSuccessListener{c.resume(it)}.addOnFailureListener{c.resume("")}};val resolved=token.ifBlank{prefs.getString("pending_fcm_token","").orEmpty()};if(resolved.isNotBlank())registerDeviceToken(resolved)}
     suspend fun registerDeviceToken(token:String){prefs.edit().putString("pending_fcm_token",token).apply();if(signedIn())api.device(DeviceRequest(token))}
 }

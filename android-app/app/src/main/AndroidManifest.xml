@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <application android:name=".CareApp" android:allowBackup="false" android:label="KB Customer Care" android:icon="@drawable/kb_movies_logo" android:roundIcon="@drawable/kb_movies_logo" android:theme="@style/Theme.KBCC" android:usesCleartextTraffic="false">
+    <application android:name=".CareApp" android:allowBackup="false" android:label="Customer Care" android:icon="@drawable/kb_movies_logo" android:roundIcon="@drawable/kb_movies_logo" android:theme="@style/Theme.KBCC" android:usesCleartextTraffic="false">
         <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="kbcc_messages" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>

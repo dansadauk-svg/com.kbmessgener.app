@@ -24,20 +24,14 @@ jobs:
           gradle-version: '8.9'
       - name: Verify Firebase configuration
         run: test -s app/google-services.json
-      - name: Verify Cloudflare Worker URL
-        env:
-          KBCC_EDGE_API: ${{ vars.KBCC_EDGE_API }}
-        run: test -n "$KBCC_EDGE_API"
       - name: Build Android app
-        env:
-          KBCC_EDGE_API: ${{ vars.KBCC_EDGE_API }}
-        run: gradle lintDebug assembleDebug --stacktrace -PKBCC_EDGE_API="$KBCC_EDGE_API"
+        run: gradle lintDebug assembleDebug --stacktrace
       - name: Prepare installable APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ../Customer-Care-v2.0.0.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk ../Customer-Care-v2.0.1.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Customer-Care-v2.0.0-APK-extract-before-sharing
-          path: Customer-Care-v2.0.0.apk
+          name: Customer-Care-v2.0.1-APK-extract-before-sharing
+          path: Customer-Care-v2.0.1.apk
           if-no-files-found: error
       - name: Publish direct APK in GitHub Releases
         if: github.event_name != 'pull_request'
@@ -46,4 +40,4 @@ jobs:
         working-directory: .
         run: |
           gh release view customer-care-latest >/dev/null 2>&1 || gh release create customer-care-latest --target "$GITHUB_SHA" --title "Customer Care — Latest APK" --notes "Download the .apk asset directly. Do not share the source-code ZIP or Actions artifact ZIP."
-          gh release upload customer-care-latest "Customer-Care-v2.0.0.apk" --clobber
+          gh release upload customer-care-latest "Customer-Care-v2.0.1.apk" --clobber

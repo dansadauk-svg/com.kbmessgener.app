@@ -1,24 +1,18 @@
-# Edge API summary
+# WordPress API summary
 
-Base: `https://YOUR_WORKER.workers.dev/v1/`
+Base: `https://kbmovies.ng/wp-json/kbcc/v1/`
 
-Agent endpoints use `Authorization: Bearer <edge-session-token>`.
-
-- `POST login` — validates the agent through WordPress and creates a 180-day edge session.
+- `POST login` — customer-care login and persistent app token.
 - `GET me` — agent profile.
-- `POST availability` — online/offline state used for assignment.
-- `POST device` — FCM device-token registration.
-- `GET conversations` — active agent inbox.
-- `GET conversations/{id}/messages` — history, incremental updates and read acknowledgement.
-- `POST conversations/{id}/close` — manually ends the active chat.
-- `POST messages` — sends text or already-uploaded media to WhatsApp.
-- `POST media/presign` — five-minute private R2 direct-upload URL.
-- `POST activity` — agent typing/recording activity.
-- `GET realtime` — authenticated WebSocket upgrade.
+- `POST availability` — online/offline status.
+- `POST device` — Firebase device-token registration.
+- `GET conversations` — agent inbox.
+- `GET conversations/{id}/messages` — incremental saved history and read state.
+- `POST conversations/{id}/close` — manual chat close.
+- `POST activity` — typing or recording indicator.
+- `POST media/presign` — temporary direct R2 PUT URL.
+- `POST messages` — saves text or completed R2 media metadata.
 
-Meta posts to `/webhooks/meta`. The Worker validates Meta's HMAC signature,
-stores each message once using its external message ID, broadcasts it to the
-agent, queues FCM, and copies media to R2 in the background.
-
-The WordPress `/wp-json/kbcc/v1/login` endpoint remains an internal identity
-check. WordPress is not used for live chat polling or media transfer.
+For media, Android first obtains a signed URL, uploads the bytes directly to
+R2, and only then asks WordPress to save the message. R2 traffic therefore does
+not pass through PHP or the Cloudways application server.

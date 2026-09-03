@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.1 Android / 1.4.9 WordPress
+- Restored the existing KBMovies.ng WordPress API as the app backend.
+- Removed the Cloudflare Worker URL requirement from GitHub Actions.
+- Kept picture and voice-note file bytes off WordPress with direct R2 uploads.
+- Copies selected images to a replayable temporary file before upload.
+- Retries failed direct R2 uploads up to three times without duplicating chat messages.
+- Reports the actual R2 HTTP error and separates upload failures from WordPress save failures.
+- Validates R2 media keys and rebuilds trusted media URLs on the server.
+- Uses five-second inbox and two-second open-chat refresh intervals.
+
 ## 2.0.0 Android / Cloudflare Edge
 - Moved live chat delivery from WordPress polling to a Cloudflare Worker.
 - Added D1 chat storage and Durable Object WebSocket foreground delivery.

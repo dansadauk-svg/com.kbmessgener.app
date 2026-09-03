@@ -3,7 +3,6 @@ package ng.kbmovies.customercare.data
 import android.content.Context
 import android.net.Uri
 import com.google.firebase.messaging.FirebaseMessaging
-import com.google.gson.Gson
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -13,9 +12,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
-import okhttp3.Response
-import okhttp3.WebSocket
-import okhttp3.WebSocketListener
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.BufferedSink
 import retrofit2.Retrofit
@@ -37,21 +33,10 @@ class CareRepository(private val context:Context) {
     // R2 presigned uploads must not receive the WordPress Bearer header.
     private val uploadClient=OkHttpClient.Builder().connectTimeout(15,TimeUnit.SECONDS).readTimeout(60,TimeUnit.SECONDS).writeTimeout(90,TimeUnit.SECONDS).retryOnConnectionFailure(true).build()
     private val api=Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL).client(apiClient).addConverterFactory(GsonConverterFactory.create()).build().create(CareApi::class.java)
-    private val gson=Gson()
 
     fun signedIn()=!prefs.getString("token","").isNullOrBlank()
     suspend fun login(user:String,pass:String):Agent { val r=api.login(LoginRequest(user,pass));prefs.edit().putString("token",r.token).apply();cacheAgent(r.agent);runCatching{registerDevice()};return r.agent }
     fun logout(){prefs.edit().clear().apply()}
-    fun connectRealtime(onEvent:(RealtimeEvent)->Unit,onConnection:(Boolean)->Unit):WebSocket? {
-        val token=prefs.getString("token","").orEmpty();if(token.isBlank())return null
-        val url=BuildConfig.API_BASE_URL.removeSuffix("/").replaceFirst("https://","wss://").replaceFirst("http://","ws://")+"/realtime"
-        return apiClient.newWebSocket(Request.Builder().url(url).header("Authorization","Bearer $token").build(),object:WebSocketListener(){
-            override fun onOpen(webSocket:WebSocket,response:Response){onConnection(true)}
-            override fun onMessage(webSocket:WebSocket,text:String){if(text!="pong")runCatching{gson.fromJson(text,RealtimeEvent::class.java)}.onSuccess(onEvent)}
-            override fun onClosed(webSocket:WebSocket,code:Int,reason:String){onConnection(false)}
-            override fun onFailure(webSocket:WebSocket,t:Throwable,response:Response?){onConnection(false)}
-        })
-    }
     fun cacheAgent(agent:Agent){prefs.edit().putLong("agent_id",agent.id).putString("agent_name",agent.name).putString("agent_avatar",agent.avatar.orEmpty()).putBoolean("agent_available",agent.available).apply()}
     fun cachedAgent():Agent?{val id=prefs.getLong("agent_id",0);if(id<=0)return null;return Agent(id,prefs.getString("agent_name","Customer Care").orEmpty(),prefs.getString("agent_avatar","").orEmpty().ifBlank{null},prefs.getBoolean("agent_available",false))}
     suspend fun me()=api.me()
@@ -74,31 +59,31 @@ class CareRepository(private val context:Context) {
 
     suspend fun sendMedia(id:Long,uri:Uri,kind:String,mime:String,onProgress:(Int)->Unit={}):Message {
         val resolved=cleanMime(mime,kind)
-        val length=context.contentResolver.openAssetFileDescriptor(uri,"r")?.use{it.length} ?: -1L
-        if(length<=0)throw IOException("The selected file could not be read")
-        val signed=api.presign(PresignRequest(id,kind,resolved,length))
-        val body=object:RequestBody(){
-            override fun contentType()=resolved.toMediaType()
-            override fun contentLength()=length
-            override fun writeTo(sink:BufferedSink){context.contentResolver.openInputStream(uri)?.use{input->val buffer=ByteArray(DEFAULT_BUFFER_SIZE);var sent=0L;while(true){val count=input.read(buffer);if(count<0)break;sink.write(buffer,0,count);sent+=count;onProgress(((sent*100)/length).toInt().coerceIn(0,100))}}?:throw IOException("The selected file could not be opened")}
-        }
-        putSigned(signed.uploadUrl,body);onProgress(100)
-        return api.send(SendRequest(id,kind,mediaUrl=signed.publicUrl,objectKey=signed.objectKey,mimeType=resolved))
+        val temp=withContext(Dispatchers.IO){File.createTempFile("kbcc-$kind-",".upload",context.cacheDir).also{target->context.contentResolver.openInputStream(uri)?.use{input->target.outputStream().use{output->input.copyTo(output)}}?:throw IOException("The selected file could not be opened")}}
+        return try{uploadAndSend(id,temp,kind,resolved,onProgress)}finally{temp.delete()}
     }
 
     suspend fun sendAudio(id:Long,file:File,onProgress:(Int)->Unit={}):Message {
         if(!file.exists()||file.length()<=0)throw IOException("No voice recording was created")
-        val mime="audio/mp4";val length=file.length();val delivered=api.presign(PresignRequest(id,"audio",mime,length))
+        return uploadAndSend(id,file,"audio","audio/mp4",onProgress)
+    }
+
+    private suspend fun uploadAndSend(id:Long,file:File,kind:String,mime:String,onProgress:(Int)->Unit):Message {
+        val length=file.length();if(length<=0)throw IOException("The media file is empty")
+        val delivered=api.presign(PresignRequest(id,kind,mime,length))
         val body=object:RequestBody(){
             override fun contentType()=mime.toMediaType()
             override fun contentLength()=length
             override fun writeTo(sink:BufferedSink){file.inputStream().use{input->val buffer=ByteArray(DEFAULT_BUFFER_SIZE);var sent=0L;while(true){val count=input.read(buffer);if(count<0)break;sink.write(buffer,0,count);sent+=count;onProgress(((sent*100)/length).toInt().coerceIn(0,100))}}}
         }
-        try{putSigned(delivered.uploadUrl,body)}catch(first:Exception){onProgress(5);delay(350);try{putSigned(delivered.uploadUrl,body)}catch(second:Exception){throw IOException("R2 voice upload failed: ${second.message?:first.message?:"check connection"}",second)}};onProgress(100)
-        return try{api.send(SendRequest(id,"audio",mediaUrl=delivered.publicUrl,objectKey=delivered.objectKey,mimeType=mime))}catch(e:Exception){throw IOException("Voice reached R2, but the chat message could not be saved: ${e.message?:"request failed"}",e)}
+        var failure:Throwable?=null
+        for(attempt in 1..3){try{putSigned(delivered.uploadUrl,body);failure=null;break}catch(e:Throwable){failure=e;if(attempt<3){onProgress(0);delay((attempt*600).toLong())}}}
+        if(failure!=null)throw IOException("Direct R2 ${if(kind=="audio")"voice-note" else "image"} upload failed after 3 attempts: ${failure.message?:"check the R2 API settings and connection"}",failure)
+        onProgress(100)
+        return try{api.send(SendRequest(id,kind,mediaUrl=delivered.publicUrl,objectKey=delivered.objectKey,mimeType=mime))}catch(e:Exception){throw IOException("The file reached R2, but WordPress could not save the chat message: ${e.message?:"request failed"}",e)}
     }
 
-    private suspend fun putSigned(url:String,body:RequestBody)=withContext(Dispatchers.IO){val request=Request.Builder().url(url).put(body).build();uploadClient.newCall(request).execute().use{if(!it.isSuccessful)throw IOException("Direct R2 upload failed (${it.code})")}}
+    private suspend fun putSigned(url:String,body:RequestBody)=withContext(Dispatchers.IO){val request=Request.Builder().url(url).header("Content-Type",body.contentType().toString()).put(body).build();uploadClient.newCall(request).execute().use{if(!it.isSuccessful){val detail=it.body?.string()?.take(240)?.replace(Regex("\\s+")," ").orEmpty();throw IOException("R2 HTTP ${it.code}${if(detail.isBlank())"" else ": $detail"}")}}}
     suspend fun registerDevice(){val token=suspendCancellableCoroutine<String>{c->FirebaseMessaging.getInstance().token.addOnSuccessListener{c.resume(it)}.addOnFailureListener{c.resume("")}};val resolved=token.ifBlank{prefs.getString("pending_fcm_token","").orEmpty()};if(resolved.isNotBlank())registerDeviceToken(resolved)}
     suspend fun registerDeviceToken(token:String){prefs.edit().putString("pending_fcm_token",token).apply();if(signedIn())api.device(DeviceRequest(token))}
 }

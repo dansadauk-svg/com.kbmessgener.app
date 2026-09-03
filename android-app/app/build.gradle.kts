@@ -12,12 +12,9 @@ android {
         applicationId = "ng.kbmovies.customercare"
         minSdk = 31
         targetSdk = 35
-        versionCode = 30
-        versionName = "2.0.0"
-        val edgeApi = providers.gradleProperty("KBCC_EDGE_API")
-            .orElse("https://kb-customer-care-edge.YOUR_SUBDOMAIN.workers.dev/v1/")
-            .get()
-        buildConfigField("String", "API_BASE_URL", "\"$edgeApi\"")
+        versionCode = 31
+        versionName = "2.0.1"
+        buildConfigField("String", "API_BASE_URL", "\"https://kbmovies.ng/wp-json/kbcc/v1/\"")
     }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

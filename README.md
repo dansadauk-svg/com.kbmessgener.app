@@ -1,38 +1,36 @@
-# KB Movies Customer Care 2.0
+# KB Movies Customer Care 2.0.1
 
-Native Android agent app backed by Cloudflare Workers, Durable Objects,
-Queues, D1 and private R2 storage. WordPress remains responsible for agent
-login, users, payments and subscription activation; it is no longer the live
-message-delivery server.
+Native Android customer-care app using the existing KBMovies.ng WordPress REST
+API. Images and voice notes are uploaded directly from the phone to Cloudflare
+R2 with temporary signed URLs; WordPress receives only the small message record.
 
-## Delivery path
+## Included
 
-- Meta WhatsApp webhook is acknowledged immediately by the Worker.
-- D1 stores conversations, text, assignments and delivery/read status.
-- A Durable Object WebSocket pushes messages to an open Android app.
-- FCM alerts the app while it is backgrounded or closed.
-- Queue consumers copy inbound WhatsApp media to private R2 and retry failures.
-- The agent app uploads pictures and recorded voice notes directly to R2 with
-  short-lived signed PUT URLs.
-- Fallback refresh is 30 seconds while live (10 seconds while reconnecting),
-  replacing the old 900 ms WordPress polling.
+- Android Kotlin/Jetpack Compose agent app.
+- WordPress bridge plugin version 1.4.9.
+- Existing agent login, availability, conversations and Firebase notifications.
+- Direct R2 picture and recorded voice-note uploads.
+- Replayable upload files and three safe retries for unstable connections.
+- Visible recording and upload progress.
+- Full-screen image preview and inline voice-note playback.
+- Five-second inbox refresh and two-second open-chat refresh.
 
-## Folders
+## Installation order
 
-- `cloudflare-worker/` — edge API, Meta webhook, WebSocket, queue and D1 schema.
-- `android-app/` — Customer Care Android app, version 2.0.0.
-- `wordpress-plugin/` — existing WordPress login/subscription bridge.
-- `docs/CLOUDFLARE-SETUP.md` — deployment and Meta configuration steps.
+1. Install/replace `KB Native Customer Care Bridge` with plugin version 1.4.9.
+2. Keep `KB Movies R2 Direct Uploader` active and configured.
+3. Confirm your R2 public/custom playback domain works.
+4. Push this source to GitHub and run `Android CI`.
+5. Install `Customer-Care-v2.0.1.apk` from the GitHub Release asset.
 
-## Build the APK
+The app uses `https://kbmovies.ng/wp-json/kbcc/v1/`. It does not require a
+Cloudflare Worker, D1, Queue, or `KBCC_EDGE_API` GitHub variable.
 
-After deploying the Worker, add a GitHub repository variable named
-`KBCC_EDGE_API`. Its value must end in `/v1/`, for example:
+## R2 limits
 
-`https://kb-customer-care-edge.example.workers.dev/v1/`
+- Images: JPG, PNG or WebP; maximum 8 MB.
+- Voice: M4A/MP4, AAC, MP3, WebM, OGG, 3GP or AMR; maximum 20 MB.
+- Upload URLs expire after 15 minutes.
 
-The workflow refuses to build without this value, preventing distribution of
-an APK with a placeholder server address. It creates `Customer-Care-v2.0.0.apk`
-and publishes it directly to the `customer-care-latest` GitHub Release.
-
-Do not commit Meta, R2, Firebase service-account or WordPress credentials.
+Do not commit Firebase service-account credentials, R2 API keys, passwords,
+release keystores, or live access tokens.

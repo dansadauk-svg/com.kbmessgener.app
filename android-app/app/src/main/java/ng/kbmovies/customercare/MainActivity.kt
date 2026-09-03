@@ -132,7 +132,7 @@ private fun receipt(status:String,readAt:String?)=when{status=="failed"->"!";sta
 
 private fun audioTime(ms:Long):String{val total=(ms.coerceAtLeast(0)/1000).toInt();return "${total/60}:${(total%60).toString().padStart(2,'0')}"}
 
-@androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi::class)
+@androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 @Composable fun InlineAudio(url:String){
     val context=LocalContext.current
     val player=remember(url){ExoPlayer.Builder(context).build().apply{setMediaItem(MediaItem.fromUri(url));prepare()}}

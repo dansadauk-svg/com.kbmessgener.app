@@ -1,50 +1,38 @@
-# KB Movies Customer Care
+# KB Movies Customer Care 2.0
 
-Native Android customer-care app plus a WordPress bridge for KBMovies.ng.
+Native Android agent app backed by Cloudflare Workers, Durable Objects,
+Queues, D1 and private R2 storage. WordPress remains responsible for agent
+login, users, payments and subscription activation; it is no longer the live
+message-delivery server.
 
-## What is included
+## Delivery path
 
-- Android app written in Kotlin and Jetpack Compose.
-- Agent login with WordPress customer-care accounts.
-- Available/offline switch controlled by each agent.
-- WhatsApp-style conversation list and chat screen.
-- Text, image and recorded voice-note messages.
-- Firebase Cloud Messaging notifications while the app is backgrounded or closed.
-- Cloudflare R2 signed uploads through KB Movies R2 Direct Uploader.
-- GitHub Actions debug APK build.
-- Installable WordPress plugin in `wordpress-plugin/kb-native-customer-care`.
+- Meta WhatsApp webhook is acknowledged immediately by the Worker.
+- D1 stores conversations, text, assignments and delivery/read status.
+- A Durable Object WebSocket pushes messages to an open Android app.
+- FCM alerts the app while it is backgrounded or closed.
+- Queue consumers copy inbound WhatsApp media to private R2 and retry failures.
+- The agent app uploads pictures and recorded voice notes directly to R2 with
+  short-lived signed PUT URLs.
+- Fallback refresh is 30 seconds while live (10 seconds while reconnecting),
+  replacing the old 900 ms WordPress polling.
 
-## Required setup
+## Folders
 
-1. Install and activate the WordPress plugin on KBMovies.ng.
-2. Keep KB Movies R2 Direct Uploader active and configured.
-3. In WordPress open **Native Customer Care > Settings** and add the Firebase
-   project ID, service-account email and private key.
-4. Give each agent the WordPress role **Customer Care Agent**.
-5. Create an Android Firebase app with package `ng.kbmovies.customercare`.
-6. The Firebase Android configuration is already included in `android-app/app/`.
-7. Push this repository to GitHub. The included workflow builds a debug APK.
+- `cloudflare-worker/` — edge API, Meta webhook, WebSocket, queue and D1 schema.
+- `android-app/` — Customer Care Android app, version 2.0.0.
+- `wordpress-plugin/` — existing WordPress login/subscription bridge.
+- `docs/CLOUDFLARE-SETUP.md` — deployment and Meta configuration steps.
 
-Never commit a Firebase service-account JSON/private key or WordPress password.
-`google-services.json` contains Android project identifiers and is included in
-this project. Service-account credentials must remain only on the server.
+## Build the APK
 
-## API base URL
+After deploying the Worker, add a GitHub repository variable named
+`KBCC_EDGE_API`. Its value must end in `/v1/`, for example:
 
-The default is `https://kbmovies.ng/wp-json/kbcc/v1/`. Change `API_BASE_URL` in
-`android-app/app/build.gradle.kts` if the site URL changes.
+`https://kb-customer-care-edge.example.workers.dev/v1/`
 
-## Production checklist
+The workflow refuses to build without this value, preventing distribution of
+an APK with a placeholder server address. It creates `Customer-Care-v2.0.0.apk`
+and publishes it directly to the `customer-care-latest` GitHub Release.
 
-- Use HTTPS only.
-- Exclude `/wp-json/kbcc/v1/*` from page cache, but keep rate limiting enabled.
-- Confirm `android-app/app/google-services.json` is present before building.
-- Create a signed release keystore in GitHub Secrets; do not commit it.
-- Test background notifications on Android 13+ after granting notification permission.
-- Publish a privacy policy explaining message and media retention.
-
-## Important scope
-
-Version 1.0.0 is a production-oriented MVP. It uses short polling while the app
-is open and FCM for instant background alerts. A later release can add WebSocket
-delivery without changing the database/API contract.
+Do not commit Meta, R2, Firebase service-account or WordPress credentials.

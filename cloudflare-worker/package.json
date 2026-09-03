@@ -1,0 +1,19 @@
+{
+  "name": "kb-customer-care-edge",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 migrations apply KBCC_DB --local",
+    "db:remote": "wrangler d1 migrations apply KBCC_DB --remote",
+    "check": "wrangler deploy --dry-run --outdir dist"
+  },
+  "dependencies": {
+    "aws4fetch": "^1.0.20"
+  },
+  "devDependencies": {
+    "wrangler": "^4.34.0"
+  }
+}

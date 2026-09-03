@@ -3,6 +3,7 @@ package ng.kbmovies.customercare.data
 import android.content.Context
 import android.net.Uri
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.gson.Gson
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -12,6 +13,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.BufferedSink
 import retrofit2.Retrofit
@@ -33,10 +37,21 @@ class CareRepository(private val context:Context) {
     // R2 presigned uploads must not receive the WordPress Bearer header.
     private val uploadClient=OkHttpClient.Builder().connectTimeout(15,TimeUnit.SECONDS).readTimeout(60,TimeUnit.SECONDS).writeTimeout(90,TimeUnit.SECONDS).retryOnConnectionFailure(true).build()
     private val api=Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL).client(apiClient).addConverterFactory(GsonConverterFactory.create()).build().create(CareApi::class.java)
+    private val gson=Gson()
 
     fun signedIn()=!prefs.getString("token","").isNullOrBlank()
     suspend fun login(user:String,pass:String):Agent { val r=api.login(LoginRequest(user,pass));prefs.edit().putString("token",r.token).apply();cacheAgent(r.agent);runCatching{registerDevice()};return r.agent }
     fun logout(){prefs.edit().clear().apply()}
+    fun connectRealtime(onEvent:(RealtimeEvent)->Unit,onConnection:(Boolean)->Unit):WebSocket? {
+        val token=prefs.getString("token","").orEmpty();if(token.isBlank())return null
+        val url=BuildConfig.API_BASE_URL.removeSuffix("/").replaceFirst("https://","wss://").replaceFirst("http://","ws://")+"/realtime"
+        return apiClient.newWebSocket(Request.Builder().url(url).header("Authorization","Bearer $token").build(),object:WebSocketListener(){
+            override fun onOpen(webSocket:WebSocket,response:Response){onConnection(true)}
+            override fun onMessage(webSocket:WebSocket,text:String){if(text!="pong")runCatching{gson.fromJson(text,RealtimeEvent::class.java)}.onSuccess(onEvent)}
+            override fun onClosed(webSocket:WebSocket,code:Int,reason:String){onConnection(false)}
+            override fun onFailure(webSocket:WebSocket,t:Throwable,response:Response?){onConnection(false)}
+        })
+    }
     fun cacheAgent(agent:Agent){prefs.edit().putLong("agent_id",agent.id).putString("agent_name",agent.name).putString("agent_avatar",agent.avatar.orEmpty()).putBoolean("agent_available",agent.available).apply()}
     fun cachedAgent():Agent?{val id=prefs.getLong("agent_id",0);if(id<=0)return null;return Agent(id,prefs.getString("agent_name","Customer Care").orEmpty(),prefs.getString("agent_avatar","").orEmpty().ifBlank{null},prefs.getBoolean("agent_available",false))}
     suspend fun me()=api.me()

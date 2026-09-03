@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kb-customer-care-edge",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "vars": {
+    "WORDPRESS_API_BASE": "https://kbmovies.ng/wp-json/kbcc/v1/",
+    "META_GRAPH_VERSION": "v23.0",
+    "MEDIA_RETENTION_DAYS": "90"
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "kb-customer-care", "database_id": "REPLACE_WITH_D1_DATABASE_ID", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "kbmovies" }
+  ],
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "kb-customer-care-jobs" }],
+    "consumers": [{ "queue": "kb-customer-care-jobs", "max_batch_size": 10, "max_batch_timeout": 2, "max_retries": 5, "dead_letter_queue": "kb-customer-care-dead-letter" }]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "CHAT_HUB", "class_name": "ChatHub" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChatHub"] }]
+}

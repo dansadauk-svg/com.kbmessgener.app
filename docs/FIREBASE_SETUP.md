@@ -5,8 +5,8 @@
 3. The supplied `google-services.json` is already in `android-app/app/`.
 4. Enable Firebase Cloud Messaging.
 5. Create a dedicated service account with FCM send permission.
-6. Copy `project_id`, `client_email`, and `private_key` into WordPress under
-   **Settings > Native Customer Care**.
+6. Store `project_id`, `client_email`, and the complete `private_key` as the
+   Worker secrets described in `CLOUDFLARE-SETUP.md`.
 
 For this project, the Firebase project ID is `chatmkmovies`. Generate the
 service-account JSON in Firebase/Google Cloud; it cannot be derived from the
@@ -17,5 +17,6 @@ GitHub Actions reads the included Android `google-services.json` directly. You
 do not need a `GOOGLE_SERVICES_JSON` repository secret. Never put a Firebase
 service-account private key in GitHub.
 
-The app registers its FCM token after login and whenever Firebase rotates it.
-WordPress sends notifications only to devices belonging to the assigned agent.
+The app registers its FCM token with the edge API after login and whenever
+Firebase rotates it. The Worker queue sends notifications only to devices
+belonging to the assigned agent; WordPress is not in the notification path.

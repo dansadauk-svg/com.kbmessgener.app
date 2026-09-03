@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.0.0 Android / Cloudflare Edge
+- Moved live chat delivery from WordPress polling to a Cloudflare Worker.
+- Added D1 chat storage and Durable Object WebSocket foreground delivery.
+- Added Cloudflare Queues for FCM, WhatsApp read receipts, media copying and retries.
+- Kept media private in R2 with five-minute upload and fifteen-minute playback URLs.
+- Added direct Android-to-R2 image and voice uploads with progress.
+- Added WhatsApp sent, delivered, read and failed message indicators.
+- Added automatic WebSocket reconnect and low-frequency safety refresh.
+- Kept WordPress only for agent identity and subscription operations.
+- Added manual chat close with same-agent resume when that agent remains online.
+
+## 1.4.5 WordPress / 1.4.7 Android
+- Added a system-recorder/file-capture fallback for Web-to-APK installations without microphone permission.
+- Added a server-assisted R2 fallback when direct customer-care voice uploads fail.
+- Normalized common Android M4A audio MIME types.
+
+## 1.4.4 WordPress
+- Removed ordinary WordPress Administrator accounts from the public customer-care selector.
+- Only users explicitly assigned the Customer Care Agent role can appear to customers.
+
 ## 1.4.6 Android
 - Added one-tap `TSARIN MU` subscription-plan quick reply.
 - Added one-tap `ACCOUNT` Moniepoint payment-details quick reply.
